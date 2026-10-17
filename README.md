@@ -1,12 +1,13 @@
 # Visualizador de audio 3D (PoC)
 
-PoC mínima para Windows: un proceso Rust captura el audio del dispositivo de salida predeterminado mediante WASAPI loopback, calcula la FFT y publica 64 bandas por WebSocket. El frontend TypeScript recibe esas bandas y anima una esfera sobre un plano con Three.js.
+PoC mínima para Windows: un proceso Rust captura el audio del dispositivo de salida predeterminado mediante WASAPI loopback, normaliza automáticamente su nivel, calcula la FFT y publica 64 bandas por WebSocket. El frontend TypeScript recibe esas bandas y anima una esfera sobre un plano con Three.js; la ecualización visual se configura y aplica únicamente en el frontend.
 
 ## Estructura
 
 ```text
 audio-visualizer/
 ├── .gitignore
+├── Cargo.lock
 ├── Cargo.toml
 ├── README.md
 ├── src/
@@ -44,6 +45,12 @@ cargo run
 
 El backend queda escuchando WebSocket en `ws://127.0.0.1:9001`.
 
+### Controles en tiempo real
+
+El panel lil-gui aparece en la esquina superior derecha. Permite ajustar en vivo la escena, la esfera, los colores, la deformacion y el ruido, las ocho bandas del ecualizador visual, el rango de frecuencias, la respuesta, la rotacion, el piso y el bloom. Cada grupo del ecualizador controla uno de ocho sectores angulares iguales de la esfera. En **Rango de frecuencias**, el piso, el techo y los siete cruces se editan en Hz; los cruces se mantienen ordenados y limitados por sus vecinos. Las frecuencias fuera del piso y el techo no alimentan la esfera ni su nivel global; en el grafico se sombrean y sus barras se atenúan. Como Rust transmite 64 bandas FFT agrupadas, cada banda se asigna a un grupo por su frecuencia central: los cruces son configurables, pero la precision efectiva esta limitada por la resolucion de esas 64 bandas. En el grafico, el eje horizontal usa frecuencia logaritmica, la curva tiene escala de ganancia 0-8x y las barras escala de nivel 0-1. En **Polos y volumen global**, `Influencia en polos` mezcla el nivel global RMS con la frecuencia local segun la distancia al polo, y `Concentracion en polos` define cuan cerca de los polos ocurre esa mezcla. `Influencia en costura` y `Ancho costura (grados)` suavizan la transicion entre el ultimo sector y el primero donde se cierra el mapeo angular. `Escala global por audio` aumenta el tamano base de toda la esfera segun ese mismo nivel global; empieza en `0`, por lo que esta desactivado. El offset de rotacion es un solo angulo en grados alrededor del eje Y, el mismo eje de la rotacion continua. Los cambios se aplican sin recargar la pagina; el ecualizador afecta solo la visualizacion y no cambia el audio del sistema.
+
+El backend aplica una ganancia automatica comun a las muestras antes de la FFT. Apunta a un RMS de `0.08`, aumenta la ganancia lentamente (hasta `32x`), la reduce mas rapido ante señales fuertes y silencia bloques por debajo de RMS `0.0005` para no amplificar ruido en silencio. Esto hace que el nivel visual sea menos dependiente del volumen del sistema, aunque puede levantar pasajes musicales suaves cuando no hay silencio digital.
+
 **Terminal 2 — frontend:**
 
 ```powershell
@@ -52,7 +59,7 @@ npm install
 npm run dev
 ```
 
-Abre la URL local que muestre Vite (normalmente <http://localhost:5173>). Reproduce audio en el equipo: la esfera aumentará de tamaño con las frecuencias graves. No se solicita acceso al micrófono.
+Abre la URL local que muestre Vite (normalmente <http://localhost:5173>). Reproduce audio en el equipo: la esfera se deformará según las frecuencias capturadas. No se solicita acceso al micrófono.
 
 ## Verificación de compilación
 
