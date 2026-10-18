@@ -1,6 +1,6 @@
 # Visualizador de audio 3D (PoC)
 
-PoC mínima para Windows: un proceso Rust captura el audio del dispositivo de salida predeterminado mediante WASAPI loopback, normaliza automáticamente su nivel, calcula la FFT y publica 64 bandas por WebSocket. El frontend TypeScript recibe esas bandas y anima una esfera sobre un plano con Three.js; la ecualización visual se configura y aplica únicamente en el frontend.
+PoC mínima para Windows: un proceso Rust captura el audio del dispositivo de salida predeterminado mediante WASAPI loopback, normaliza automáticamente su nivel, calcula una FFT de 2048 muestras con 50 % de solapamiento (salto de 1024 muestras, aproximadamente 46,9 análisis/s a 48 kHz) y publica 64 bandas por WebSocket. El solapamiento aumenta la frecuencia de actualización sin reducir la resolución frecuencial, que sigue siendo de unos 23,4 Hz por bin. El frontend TypeScript recibe esas bandas y anima una esfera sobre un plano con Three.js; la ecualización visual se configura y aplica únicamente en el frontend.
 
 ## Estructura
 

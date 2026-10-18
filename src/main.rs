@@ -12,6 +12,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
 
 const FFT_SIZE: usize = 2048;
+const FFT_HOP_SIZE: usize = FFT_SIZE / 2;
 const CHANNELS: usize = 2;
 const BANDS: usize = 64;
 const SAMPLE_RATE: usize = 48_000;
@@ -134,16 +135,20 @@ fn capture(frequencies: watch::Sender<Vec<f32>>, ready: oneshot::Sender<Result<(
     println!("Capturando loopback WASAPI ({SAMPLE_RATE} Hz)");
 
     let mut byte_queue = VecDeque::with_capacity(FFT_SIZE * CHANNELS * 4 * 4);
+    let mut sample_queue = VecDeque::with_capacity(FFT_SIZE * 2);
     let mut planner = RealFftPlanner::<f32>::new();
     let fft = planner.plan_fft_forward(FFT_SIZE);
     let mut input = vec![0.0; FFT_SIZE];
+    let mut processed_input = vec![0.0; FFT_SIZE];
     let mut auto_gain = AutoGain::default();
     let mut spectrum = fft.make_output_vec();
     let mut scratch = fft.make_scratch_vec();
     let window: Vec<f32> = (0..FFT_SIZE)
         .map(|i| 0.5 - 0.5 * (std::f32::consts::TAU * i as f32 / (FFT_SIZE - 1) as f32).cos())
         .collect();
-    let frame_bytes = FFT_SIZE * CHANNELS * std::mem::size_of::<f32>();
+    let sample_bytes = CHANNELS * std::mem::size_of::<f32>();
+    let hop_duration = FFT_HOP_SIZE as f32 / SAMPLE_RATE as f32;
+    let mut has_window = false;
 
     loop {
         if audio_client
@@ -156,20 +161,43 @@ fn capture(frequencies: watch::Sender<Vec<f32>>, ready: oneshot::Sender<Result<(
                 .context("Error leyendo muestras WASAPI")?;
         }
 
-        while byte_queue.len() >= frame_bytes {
-            for sample in &mut input {
-                let left = take_f32(&mut byte_queue);
-                let right = take_f32(&mut byte_queue);
-                *sample = (left + right) * 0.5;
+        while byte_queue.len() >= sample_bytes {
+            let left = take_f32(&mut byte_queue);
+            let right = take_f32(&mut byte_queue);
+            sample_queue.push_back((left + right) * 0.5);
+        }
+
+        loop {
+            if has_window {
+                if sample_queue.len() < FFT_HOP_SIZE {
+                    break;
+                }
+                input.copy_within(FFT_HOP_SIZE.., 0);
+                for sample in &mut input[FFT_SIZE - FFT_HOP_SIZE..] {
+                    *sample = sample_queue
+                        .pop_front()
+                        .expect("se validó el tamaño del bloque");
+                }
+            } else {
+                if sample_queue.len() < FFT_SIZE {
+                    break;
+                }
+                for sample in &mut input {
+                    *sample = sample_queue
+                        .pop_front()
+                        .expect("se validó el tamaño del bloque");
+                }
+                has_window = true;
             }
 
-            let has_signal = auto_gain.apply(&mut input, FFT_SIZE as f32 / SAMPLE_RATE as f32);
+            processed_input.copy_from_slice(&input);
+            let has_signal = auto_gain.apply(&mut processed_input, hop_duration);
             if has_signal {
-                for (sample, weight) in input.iter_mut().zip(&window) {
+                for (sample, weight) in processed_input.iter_mut().zip(&window) {
                     *sample *= weight;
                 }
             }
-            fft.process_with_scratch(&mut input, &mut spectrum, &mut scratch)
+            fft.process_with_scratch(&mut processed_input, &mut spectrum, &mut scratch)
                 .context("Error calculando FFT")?;
 
             if has_signal {
