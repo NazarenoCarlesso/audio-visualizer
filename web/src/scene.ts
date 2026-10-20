@@ -6,6 +6,7 @@ import { VISUAL } from "./config";
 import { sphere } from "./sphere";
 
 export const scene = new THREE.Scene();
+
 scene.background = new THREE.Color(VISUAL.backgroundColor);
 
 export const camera = new THREE.PerspectiveCamera(
@@ -14,6 +15,7 @@ export const camera = new THREE.PerspectiveCamera(
   0.1,
   100,
 );
+
 camera.position.set(0, 2.6, 6);
 camera.lookAt(0, 0.8, 0);
 
@@ -41,12 +43,9 @@ export const bloomPass = new UnrealBloomPass(
 );
 composer.addPass(bloomPass);
 
-export const floorMaterial = new THREE.MeshStandardMaterial({
-  color: VISUAL.floorColor,
-  roughness: 0.85,
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
-export const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), floorMaterial);
-floor.scale.setScalar(VISUAL.floorSize);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.02;
-scene.add(floor);

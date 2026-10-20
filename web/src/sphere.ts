@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import classicNoise3D from "./classicnoise3D.glsl?raw";
+import classicNoise3D from "./shaders/classicnoise3D.glsl?raw";
 import { VISUAL, EQ_BAND_DEFINITIONS } from "./config";
 
 // El shader comparte con Rust las bandas ya suavizadas y calcula el desplazamiento
@@ -23,6 +23,7 @@ export const audioUniforms = {
 export let sphereGeometry = new THREE.IcosahedronGeometry(1, VISUAL.detail);
 
 const vertexColor = new THREE.Color();
+
 export const updateSphereColors = (geometry: THREE.BufferGeometry) => {
   const positions = geometry.getAttribute("position");
   const colors = new Float32Array(positions.count * 3);
@@ -40,6 +41,7 @@ export const updateSphereColors = (geometry: THREE.BufferGeometry) => {
   }
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 };
+
 updateSphereColors(sphereGeometry);
 
 export const sphereMaterial = new THREE.MeshBasicMaterial({
@@ -50,6 +52,7 @@ export const sphereMaterial = new THREE.MeshBasicMaterial({
   blending: THREE.NormalBlending,
   depthWrite: false,
 });
+
 sphereMaterial.onBeforeCompile = (shader) => {
   Object.assign(shader.uniforms, audioUniforms);
   shader.vertexShader = shader.vertexShader.replace(
@@ -70,6 +73,7 @@ uniform float uNoiseInfluence;
 uniform float uNoiseAmount;
 uniform float uSectorEdgeBlend;`,
   );
+
   shader.vertexShader = shader.vertexShader.replace(
     "#include <begin_vertex>",
     `vec3 transformed = vec3(position);
@@ -100,8 +104,11 @@ float displacement = noise * uNoiseAmount
 transformed += direction * displacement;`,
   );
 };
+
 sphereMaterial.customProgramCacheKey = () => "audio-classic-noise-eight-sectors-v3";
 
 export const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
 sphere.scale.setScalar(VISUAL.sphereSize);
+
 sphere.position.y = 0.9;
