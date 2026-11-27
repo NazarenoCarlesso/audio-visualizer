@@ -1,0 +1,23 @@
+{
+    "floorHz": 63,
+    "ceilingHz": 6000,
+    "crossovers": {
+        "subBass": 125,
+        "bass": 194,
+        "lowMids": 254,
+        "mids": 346,
+        "upperMids": 664,
+        "presence": 1450,
+        "brilliance": 3456
+    },
+    "equalizer": {
+        "subBass": 1.2,
+        "bass": 0.7,
+        "lowMids": 0.9,
+        "mids": 0.7,
+        "upperMids": 0.8,
+        "presence": 1.1,
+        "brilliance": 1.2,
+        "air": 1.5
+    }
+}

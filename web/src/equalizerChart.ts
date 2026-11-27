@@ -178,7 +178,7 @@ export const drawEqSpectrumChart = (spectrum: Float32Array) => {
     if (startHz >= maxHz || endHz <= minHz) return;
     const xStart = xForHz(startHz);
     const xEnd = xForHz(endHz);
-    const y = yForGain(VISUAL.equalizer[range.key as EqualizerBandKey]);
+    const y = yForGain(FREQUENCY.equalizer[range.key as EqualizerBandKey]);
     if (index === 0 || xStart === left) {
       context.moveTo(xStart, y);
     } else {
@@ -187,7 +187,7 @@ export const drawEqSpectrumChart = (spectrum: Float32Array) => {
     context.lineTo(xEnd, y);
     const nextRange = equalizerRanges[index + 1];
     if (nextRange && endHz < maxHz) {
-      context.lineTo(xEnd, yForGain(VISUAL.equalizer[nextRange.key as EqualizerBandKey]));
+      context.lineTo(xEnd, yForGain(FREQUENCY.equalizer[nextRange.key as EqualizerBandKey]));
     }
   });
   context.stroke();

@@ -1,4 +1,38 @@
-// AJUSTES RAPIDOS: cambia estos valores para personalizar la escena.
+export async function loadConfig(
+  spherePreset = "default",
+  equalizerPreset = "default",
+) {
+  try {
+    const [sphereRes, equalizerRes] = await Promise.all([
+      fetch(`/sphere/${spherePreset}.json`),
+      fetch(`/equalizer/${equalizerPreset}.json`),
+    ]);
+
+    if (sphereRes.ok) {
+      const sphereData = await sphereRes.json();
+      Object.assign(VISUAL, sphereData);
+    }
+
+    if (equalizerRes.ok) {
+      const eqData = await equalizerRes.json();
+      if (typeof eqData.floorHz === "number") {
+        FREQUENCY.floorHz = eqData.floorHz;
+      }
+      if (typeof eqData.ceilingHz === "number") {
+        FREQUENCY.ceilingHz = eqData.ceilingHz;
+      }
+      if (eqData.crossovers && typeof eqData.crossovers === "object") {
+        Object.assign(FREQUENCY.crossovers, eqData.crossovers);
+      }
+      if (eqData.equalizer && typeof eqData.equalizer === "object") {
+        Object.assign(FREQUENCY.equalizer, eqData.equalizer);
+      }
+    }
+  } catch (error) {
+    console.error("Error al cargar la configuración.", error);
+  }
+}
+
 export const VISUAL = {
   backgroundColor: 0x000000, // Fondo de la pagina.
   sphereSize: 3, // Tamano general del icosaedro.
@@ -14,12 +48,10 @@ export const VISUAL = {
   noiseSpeed: 0.25, // Velocidad a la que el patron de ruido se desplaza.
   noiseInfluence: 0.8, // Cuanto varia el audio entre distintas zonas de la esfera.
   noiseAmount: 0.02, // Relieve sutil aun cuando no hay sonido.
-  colorHueStart: 0, // Color inicial; el tono HSL va de 0 a 1.
+  colorHueStart: 0.54, // Color inicial; el tono HSL va de 0 a 1.
   colorHueRange: 0, // Cuanto cambia el tono alrededor de la esfera.
   colorSaturation: 1, // Intensidad del color (0 = gris, 1 = intenso).
   colorLightness: 0.55, // Luminosidad; debe ser alta para que el bloom ilumine la malla.
-  floorColor: 0x000000, // Color del plano.
-  floorSize: 0, // Ancho y largo del plano.
   bloomStrength: 1.2, // Intensidad del halo.
   bloomRadius: 0.1, // Tamano y suavidad del halo.
   bloomThreshold: 0.1, // Brillo minimo de los pixeles que generan bloom.
@@ -28,18 +60,7 @@ export const VISUAL = {
   releaseSpeed: 12, // Rapidez con la que vuelve a su forma base.
   rotationSpeed: 0.2, // Velocidad de rotacion.
   // Giro inicial en grados sobre el eje Y, igual que la rotacion continua.
-  rotationOffset: 0,
-  // Ganancia de cada sector; sus rangos de frecuencia se configuran abajo en FREQUENCY.
-  equalizer: {
-    subBass: 1.2,
-    bass: 0.7,
-    lowMids: 0.9,
-    mids: 0.7,
-    upperMids: 0.8,
-    presence: 1.1,
-    brilliance: 1.2,
-    air: 1.5,
-  },
+  rotationOffset: 0
 };
 
 export const SAMPLE_RATE = 48_000;
@@ -63,17 +84,27 @@ export type EqualizerBandKey = typeof EQ_BAND_DEFINITIONS[number]["key"];
 export type CrossoverKey = Exclude<EqualizerBandKey, "air">;
 
 export const FREQUENCY = {
-  floorHz: 63,
-  ceilingHz: 6_000,
+  floorHz: 30,
+  ceilingHz: 16_000,
   crossovers: {
-    subBass: 125,
-    bass: 194,
-    lowMids: 254,
-    mids: 346,
-    upperMids: 664,
-    presence: 1_450,
-    brilliance: 3_456,
+    subBass: 60,
+    bass: 150,
+    lowMids: 250,
+    mids: 500,
+    upperMids: 1_000,
+    presence: 2_000,
+    brilliance: 4_000,
   } satisfies Record<CrossoverKey, number>,
+  equalizer: {
+    subBass: 1,
+    bass: 1,
+    lowMids: 1,
+    mids: 1,
+    upperMids: 1,
+    presence: 1,
+    brilliance: 1,
+    air: 1,
+  }
 };
 
 export const getEqualizerRanges = () => {
@@ -107,3 +138,9 @@ export const getFftBandsByEqualizerRange = () =>
       centerHz >= range.minHz && centerHz < range.maxHz ? [index] : [],
     ),
   );
+
+export let fftBandsByEqualizerRange = getFftBandsByEqualizerRange();
+
+export const refreshFftBands = () => {
+  fftBandsByEqualizerRange = getFftBandsByEqualizerRange();
+};
