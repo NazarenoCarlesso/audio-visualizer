@@ -20,8 +20,8 @@ const TARGET_RMS: f32 = 0.08;
 const SILENCE_THRESHOLD_RMS: f32 = 0.0005;
 const MIN_AUTO_GAIN: f32 = 0.25;
 const MAX_AUTO_GAIN: f32 = 32.0;
-const GAIN_UP_TIME_SECONDS: f32 = 0.8;
-const GAIN_DOWN_TIME_SECONDS: f32 = 0.08;
+const GAIN_UP_TIME_SECONDS: f32 = 5.0;
+const GAIN_DOWN_TIME_SECONDS: f32 = 5.0;
 const SILENCE_RESET_TIME_SECONDS: f32 = 0.25;
 
 struct AutoGain {
@@ -317,7 +317,8 @@ mod tests {
         let mut quiet_rms = 0.0;
         let mut loud_rms = 0.0;
 
-        for frame in 0..120 {
+        const TEST_FRAMES: usize = 700;
+        for frame in 0..TEST_FRAMES {
             let mut quiet_frame: Vec<f32> = (0..FFT_SIZE)
                 .map(|sample| {
                     0.01 * (std::f32::consts::TAU * 1_000.0 * (frame * FFT_SIZE + sample) as f32
@@ -331,7 +332,7 @@ mod tests {
             quiet_gain.apply(&mut quiet_frame, frame_duration);
             loud_gain.apply(&mut loud_frame, frame_duration);
 
-            if frame == 119 {
+            if frame == TEST_FRAMES - 1 {
                 quiet_rms = sample_rms(&quiet_frame);
                 loud_rms = sample_rms(&loud_frame);
             }
