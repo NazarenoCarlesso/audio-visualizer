@@ -7,7 +7,7 @@ import { sphere } from "./sphere";
 
 export const scene = new THREE.Scene();
 
-scene.background = new THREE.Color(VISUAL.backgroundColor);
+scene.background = new THREE.Color(0x000000);
 
 export const camera = new THREE.PerspectiveCamera(
   120,

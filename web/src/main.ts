@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import "./styles/ui.css";
 import { VISUAL, loadConfig } from "./config";
 import { audioUniforms, sphere } from "./sphere";
 import { composer, renderer } from "./scene";
