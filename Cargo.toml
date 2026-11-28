@@ -3,12 +3,16 @@ name = "audio-visualizer"
 version = "0.1.0"
 edition = "2021"
 
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
 [dependencies]
 anyhow = "1"
 cpal = "0.15"
 futures-util = "0.3"
 realfft = "3"
 serde_json = "1"
+tauri = { version = "2", features = [] }
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "sync"] }
 tokio-tungstenite = "0.26"
 wasapi = "0.26"

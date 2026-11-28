@@ -1,3 +1,7 @@
 /target/
+/node_modules/
+/gen/schemas/
 /web/dist/
 /web/node_modules/
+*.log
+.DS_Store
