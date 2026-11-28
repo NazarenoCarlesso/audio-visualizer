@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use std::{collections::VecDeque, thread, time::Duration};
 
 use anyhow::{Context, Result};
@@ -63,8 +65,21 @@ impl AutoGain {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() {
+    tauri::Builder::default()
+        .setup(|_app| {
+            tauri::async_runtime::spawn(async {
+                if let Err(error) = run_audio_server().await {
+                    eprintln!("Error en el servidor de audio: {error:#}");
+                }
+            });
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("Error ejecutando la aplicación Tauri");
+}
+
+async fn run_audio_server() -> Result<()> {
     let output = cpal::default_host()
         .default_output_device()
         .context("No hay un dispositivo de salida predeterminado")?;
